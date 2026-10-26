@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Séance du soir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: une colonne éditoriale étroite, étapes empilées, résultats en "billets" (affiche à gauche, détail à droite). */
+:root{
+  --bg:#E8EAEE; --surface:#F8F9FB; --ink:#14171F; --muted:#586070; --line:#C9CFD9;
+  --accent:#D1264B; --on-accent:#FFFFFF; --ok:#1C7A52;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow","Segoe UI",system-ui,-apple-system,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101218; --surface:#1A1D26; --ink:#EEF0F4; --muted:#9AA1AF; --line:#2C313D;
+    --accent:#F0506F; --on-accent:#14171F; --ok:#4CC38A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101218; --surface:#1A1D26; --ink:#EEF0F4; --muted:#9AA1AF; --line:#2C313D;
+  --accent:#F0506F; --on-accent:#14171F; --ok:#4CC38A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--body); font-size:16px; line-height:1.5;
+  padding-block:max(24px, env(safe-area-inset-top, 0px)) max(48px, env(safe-area-inset-bottom, 0px));
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:32px}
+header{padding-bottom:20px; border-bottom:2px dashed var(--line)}
+h1{
+  margin:0; font-family:var(--display); font-weight:700; text-transform:uppercase;
+  font-size:clamp(44px, 12vw, 72px); line-height:.92; letter-spacing:.01em; text-wrap:balance;
+}
+.lede{margin:10px 0 0; color:var(--muted); max-width:52ch}
+h2{
+  margin:0; font-family:var(--display); font-weight:600; text-transform:uppercase;
+  font-size:22px; letter-spacing:.06em;
+}
+.step{display:flex; flex-direction:column; gap:14px}
+.step-head{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+.step-head small{color:var(--muted); font-size:14px}
+.note{margin:0; color:var(--muted); font-size:14px}
+.err{margin:0; color:var(--accent); font-size:14px}
+
+/* Plateformes */
+.provs{display:grid; grid-template-columns:repeat(auto-fill, minmax(76px, 1fr)); gap:10px}
+.prov{
+  appearance:none; font:inherit; color:var(--ink); background:var(--surface);
+  border:2px solid var(--line); border-radius:6px; padding:10px 6px 8px;
+  display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; min-width:0;
+}
+.prov img{width:40px; height:40px; border-radius:6px; display:block}
+.prov span{font-size:12px; line-height:1.15; text-align:center; overflow-wrap:anywhere}
+.prov[aria-pressed="true"]{border-color:var(--accent); background:var(--surface); box-shadow:inset 0 0 0 1px var(--accent)}
+.prov[aria-pressed="true"] span{font-weight:600}
+
+/* Recherche */
+.search{display:flex; flex-direction:column; gap:10px}
+input[type="search"], input[type="text"]{
+  width:100%; font:inherit; color:var(--ink); background:var(--surface);
+  border:2px solid var(--line); border-radius:6px; padding:12px 14px;
+}
+input::placeholder{color:var(--muted)}
+.hits{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; border:1px solid var(--line); border-radius:6px; background:var(--surface)}
+.hits:empty{display:none}
+.hit{display:flex; align-items:center; gap:12px; padding:8px 10px; border-bottom:1px solid var(--line)}
+.hit:last-child{border-bottom:0}
+.hit .t{flex:1; min-width:0}
+.hit .t b{font-weight:600; overflow-wrap:anywhere}
+.hit .t small{color:var(--muted); margin-left:6px}
+.thumb{width:40px; height:60px; border-radius:3px; background:var(--line); object-fit:cover; flex:none; display:block}
+.btn-s{
+  appearance:none; font:inherit; font-size:14px; font-weight:600; cursor:pointer;
+  color:var(--ink); background:transparent; border:2px solid var(--ink); border-radius:6px; padding:6px 12px; flex:none;
+}
+.btn-s:hover{background:var(--ink); color:var(--bg)}
+.liked{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px}
+.liked li{display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:6px 6px 6px 6px; min-width:0}
+.liked .thumb{width:32px; height:48px}
+.liked .n{flex:1; min-width:0; font-size:14px; line-height:1.25; font-weight:500; overflow-wrap:anywhere}
+.liked .n small{display:block; color:var(--muted); font-weight:400}
+.x{appearance:none; background:transparent; border:0; color:var(--muted); font-size:22px; line-height:1; cursor:pointer; padding:4px 8px}
+.x:hover{color:var(--accent)}
+
+/* Action */
+.go{
+  appearance:none; font-family:var(--display); font-weight:700; text-transform:uppercase;
+  font-size:24px; letter-spacing:.06em; cursor:pointer;
+  color:var(--on-accent); background:var(--accent); border:0; border-radius:6px; padding:16px 22px; width:100%;
+}
+.go:disabled{background:var(--line); color:var(--muted); cursor:not-allowed}
+.status{min-height:1.5em; margin:0; color:var(--muted); font-size:14px}
+
+/* Résultats */
+.label{margin-bottom:12px}
+.ticket{
+  display:grid; grid-template-columns:minmax(96px, 160px) minmax(0, 1fr); gap:18px;
+  background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:14px;
+}
+.ticket .poster{width:100%; aspect-ratio:2/3; border-radius:4px; object-fit:cover; background:var(--line); display:block}
+.ticket h3{margin:0; font-family:var(--display); font-weight:700; font-size:clamp(28px, 7vw, 38px); line-height:1; text-transform:uppercase; text-wrap:balance; overflow-wrap:anywhere}
+.meta{margin:6px 0 0; color:var(--muted); font-size:14px}
+.why{margin:10px 0 0; font-size:14px; font-weight:500}
+.over{margin:10px 0 0; font-size:15px; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden}
+.onplat{display:flex; align-items:center; gap:6px; margin-top:12px; flex-wrap:wrap}
+.onplat img{width:28px; height:28px; border-radius:5px; display:block}
+.onplat span{font-size:13px; color:var(--ok); font-weight:600}
+.score{font-family:var(--display); font-weight:600; font-size:15px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted)}
+.score b{color:var(--ink); font-size:20px}
+.actions{margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.rows{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
+.row{
+  display:grid; grid-template-columns:30px 52px minmax(0, 1fr) auto; gap:12px; align-items:center;
+  padding:12px 0; border-top:1px dashed var(--line);
+}
+.row .rk{font-family:var(--display); font-weight:700; font-size:22px; color:var(--muted)}
+.row .thumb{width:52px; height:78px}
+.row h3{margin:0; font-size:17px; font-weight:600; line-height:1.25; overflow-wrap:anywhere}
+.row .meta{margin:2px 0 0}
+.row .why{margin:4px 0 0; font-weight:400}
+.row .onplat{margin-top:6px}
+.row .onplat img{width:22px; height:22px}
+
+details{border-top:2px dashed var(--line); padding-top:16px}
+summary{cursor:pointer; font-family:var(--display); font-weight:600; font-size:18px; text-transform:uppercase; letter-spacing:.06em}
+.setgrid{display:flex; flex-direction:column; gap:12px; margin-top:14px}
+.setgrid label{font-size:14px; color:var(--muted)}
+.inline{display:flex; gap:10px; flex-wrap:wrap}
+.inline input{flex:1 1 220px; min-width:0}
+footer{font-size:12px; color:var(--muted); line-height:1.5}
+footer p{margin:0 0 6px}
+:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+
+@media (max-width:520px){
+  .ticket{grid-template-columns:104px minmax(0, 1fr); gap:14px; padding:12px}
+  .row{grid-template-columns:24px 44px minmax(0, 1fr); }
+  .row .thumb{width:44px; height:66px}
+  .row .x-wrap{grid-column:3}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Séance<br>du soir</h1>
+  <p class="lede">Choisis tes plateformes, ajoute quelques films que tu aimes, et récupère une sélection disponible chez toi.</p>
+</header>
+
+<section class="step" aria-labelledby="h-prov">
+  <div class="step-head"><h2 id="h-prov">1 · Où tu regardes</h2><small>Abonnements en France</small></div>
+  <div id="providers" class="provs"></div>
+</section>
+
+<section class="step" aria-labelledby="h-liked">
+  <div class="step-head"><h2 id="h-liked">2 · Ce que tu aimes</h2><small>Cinq à dix films suffisent</small></div>
+  <div class="search">
+    <input id="q" type="search" placeholder="Chercher un film (ex. Parasite, Heat, Amélie)" autocomplete="off" aria-label="Chercher un film à ajouter">
+    <ul id="hits" class="hits"></ul>
+  </div>
+  <ul id="liked" class="liked"></ul>
+  <p id="liked-empty" class="note">Aucun film pour l'instant.</p>
+</section>
+
+<section class="step" aria-labelledby="h-go">
+  <div class="step-head"><h2 id="h-go">3 · Ma sélection</h2></div>
+  <button id="go" class="go" type="button" disabled>Me proposer un film</button>
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+  <div id="out"></div>
+</section>
+
+<details>
+  <summary>Réglages</summary>
+  <div class="setgrid">
+    <label for="key">Clé API TMDB (gratuite : themoviedb.org, Paramètres, API)</label>
+    <div class="inline">
+      <input id="key" type="text" autocomplete="off" spellcheck="false">
+      <button id="save-key" class="btn-s" type="button">Enregistrer</button>
+    </div>
+    <p id="seen-info" class="note"></p>
+    <div class="inline">
+      <button id="reset-seen" class="btn-s" type="button">Réafficher les films écartés</button>
+      <button id="reset-all" class="btn-s" type="button">Tout effacer</button>
+    </div>
+  </div>
+</details>
+
+<footer>
+  <p>Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.</p>
+  <p>Disponibilité des films par plateforme : données JustWatch, via TMDB.</p>
+  <p>Tes choix et ta clé API sont gardés dans ce navigateur uniquement : à refaire une fois sur chaque appareil.</p>
+</footer>
+
+</div>
+
+<script>
+const DEFAULT_KEY = "";
+const REGION = "FR", LANG = "fr-FR";
+const API = "https://api.themoviedb.org/3";
+const IMG = "https://image.tmdb.org/t/p/";
+
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("seance:" + k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem("seance:" + k, JSON.stringify(v)); }catch(e){} }
+};
+const state = {
+  key: store.get("key", DEFAULT_KEY) || DEFAULT_KEY,
+  providers: store.get("providers", []),
+  liked: store.get("liked", []),
+  seen: store.get("seen", [])
+};
+let genreNames = {};
+let providerList = [];
+let lastHits = new Map();
+let current = [];
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function api(path, params){
+  const u = new URL(API + path);
+  u.searchParams.set("api_key", state.key);
+  u.searchParams.set("language", LANG);
+  Object.entries(params || {}).forEach(([k, v]) => u.searchParams.set(k, v));
+  const r = await fetch(u);
+  if(!r.ok){ const e = new Error("TMDB " + r.status); e.status = r.status; throw e; }
+  return r.json();
+}
+async function pool(items, n, fn){
+  const out = []; let i = 0;
+  const worker = async () => {
+    while(i < items.length){
+      const idx = i++;
+      try{ out[idx] = await fn(items[idx]); }
+      catch(e){ if(e.status === 401) throw e; out[idx] = null; }
+    }
+  };
+  await Promise.all(Array.from({length: Math.min(n, items.length)}, worker));
+  return out;
+}
+function errText(e){
+  if(e && e.status === 401) return "Clé TMDB refusée. Vérifie-la dans Réglages.";
+  return "Connexion à TMDB impossible. Vérifie ta connexion internet.";
+}
+const poster = (p, size) => p ? IMG + (size || "w185") + p : "";
+const thumb = (p, alt) => p ? `<img class="thumb" src="${poster(p, "w92")}" alt="${esc(alt)}" loading="lazy">` : `<div class="thumb" role="img" aria-label="Pas d'affiche"></div>`;
+const fmtRuntime = m => m ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : "";
+
+/* ---------- Plateformes ---------- */
+async function loadProviders(){
+  const box = $("#providers");
+  box.innerHTML = `<p class="note">Chargement des plateformes…</p>`;
+  try{
+    const d = await api("/watch/providers/movie", {watch_region: REGION});
+    const rentalOnly = new Set([2, 3, 10, 35, 58, 61, 68, 192]); // boutiques de location/achat, pas d'abonnement
+    providerList = d.results.filter(p => !rentalOnly.has(p.provider_id)).map(p => ({
+      id: p.provider_id, name: p.provider_name, logo: p.logo_path,
+      prio: (p.display_priorities && p.display_priorities[REGION] != null) ? p.display_priorities[REGION] : (p.display_priority != null ? p.display_priority : 999)
+    })).sort((a, b) => a.prio - b.prio).slice(0, 18);
+    renderProviders();
+  }catch(e){
+    box.innerHTML = `<p class="err">${esc(errText(e))} <button class="btn-s" type="button" data-act="retry">Réessayer</button></p>`;
+  }
+}
+function renderProviders(){
+  $("#providers").innerHTML = providerList.map(p => `
+    <button class="prov" type="button" data-prov="${p.id}" aria-pressed="${state.providers.includes(p.id)}">
+      <img src="${poster(p.logo, "w92")}" alt="" loading="lazy"><span>${esc(p.name)}</span>
+    </button>`).join("");
+}
+
+/* ---------- Films aimés ---------- */
+let timer;
+$("#q").addEventListener("input", e => {
+  clearTimeout(timer);
+  const q = e.target.value.trim();
+  if(q.length < 2){ $("#hits").innerHTML = ""; return; }
+  timer = setTimeout(() => search(q), 300);
+});
+async function search(q){
+  try{
+    const d = await api("/search/movie", {query: q, include_adult: "false"});
+    const list = d.results.slice(0, 6);
+    lastHits = new Map(list.map(m => [m.id, m]));
+    $("#hits").innerHTML = list.length ? list.map(m => `
+      <li class="hit">
+        ${thumb(m.poster_path, m.title)}
+        <div class="t"><b>${esc(m.title)}</b><small>${esc((m.release_date || "").slice(0, 4))}</small></div>
+        <button class="btn-s" type="button" data-add="${m.id}">${state.liked.some(l => l.id === m.id) ? "Ajouté" : "Ajouter"}</button>
+      </li>`).join("") : `<li class="hit"><span class="note">Aucun résultat.</span></li>`;
+  }catch(e){
+    $("#hits").innerHTML = `<li class="hit"><span class="err">${esc(errText(e))}</span></li>`;
+  }
+}
+function addLiked(id){
+  const m = lastHits.get(id);
+  if(!m || state.liked.some(l => l.id === id)) return;
+  state.liked.push({id: m.id, title: m.title, year: (m.release_date || "").slice(0, 4), poster: m.poster_path, genres: m.genre_ids || []});
+  store.set("liked", state.liked);
+  renderLiked(); updateGo();
+  const b = document.querySelector(`[data-add="${id}"]`); if(b) b.textContent = "Ajouté";
+}
+function renderLiked(){
+  $("#liked").innerHTML = state.liked.map(m => `
+    <li>${thumb(m.poster, m.title)}
+      <div class="n">${esc(m.title)}<small>${esc(m.year)}</small></div>
+      <button class="x" type="button" data-del="${m.id}" aria-label="Retirer ${esc(m.title)}">×</button>
+    </li>`).join("");
+  $("#liked-empty").hidden = state.liked.length > 0;
+}
+function updateGo(){
+  const go = $("#go");
+  const missing = [];
+  if(!state.providers.length) missing.push("une plateforme");
+  if(!state.liked.length) missing.push("un film aimé");
+  go.disabled = missing.length > 0;
+  if(missing.length) $("#status").textContent = "Il manque encore : " + missing.join(" et ") + ".";
+  else if($("#status").textContent.startsWith("Il manque")) $("#status").textContent = "";
+}
+
+/* ---------- Recommandation ---------- */
+async function details(id){
+  const d = await api(`/movie/${id}`, {append_to_response: "watch/providers"});
+  const fr = d["watch/providers"] && d["watch/providers"].results && d["watch/providers"].results[REGION];
+  const flat = ((fr && fr.flatrate) || []).filter(p => state.providers.includes(p.provider_id));
+  return {overview: d.overview, runtime: d.runtime, flat, genres: (d.genres || []).map(g => g.id), poster: d.poster_path,
+          va: d.vote_average, vc: d.vote_count, title: d.title, year: (d.release_date || "").slice(0, 4)};
+}
+async function recommend(){
+  const go = $("#go"), status = $("#status"), out = $("#out");
+  go.disabled = true; out.innerHTML = "";
+  try{
+    const likedIds = new Set(state.liked.map(m => m.id));
+    const skip = id => likedIds.has(id) || state.seen.includes(id);
+    const N = state.liked.length;
+
+    // Profil de goût : poids par genre
+    const gw = {};
+    state.liked.forEach(m => m.genres.forEach(g => gw[g] = (gw[g] || 0) + 1));
+    const norm = Math.sqrt(Object.values(gw).reduce((s, v) => s + v * v, 0)) || 1;
+    const topGenres = Object.entries(gw).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]);
+
+    const cands = new Map();
+    const take = (m, fromTitle) => {
+      if(skip(m.id)) return;
+      let c = cands.get(m.id);
+      if(!c){
+        c = {id: m.id, title: m.title, year: (m.release_date || "").slice(0, 4), poster: m.poster_path,
+             genres: m.genre_ids || [], va: m.vote_average || 0, vc: m.vote_count || 0, from: new Set(), d: null};
+        cands.set(m.id, c);
+      }
+      if(fromTitle) c.from.add(fromTitle);
+    };
+
+    // A. Films recommandés à partir de chaque film aimé
+    status.textContent = "Je cherche des films proches des tiens…";
+    await pool(state.liked, 4, async lm => {
+      for(const page of [1, 2]){
+        const d = await api(`/movie/${lm.id}/recommendations`, {page});
+        d.results.forEach(m => take(m, lm.title));
+      }
+    });
+
+    // B. Films déjà disponibles sur tes plateformes, dans tes genres
+    status.textContent = "Je regarde ce qui est disponible chez toi…";
+    const base = {
+      with_watch_providers: state.providers.join("|"), watch_region: REGION,
+      with_watch_monetization_types: "flatrate", include_adult: "false"
+    };
+    if(topGenres.length) base.with_genres = topGenres.join("|");
+    const jobs = [
+      {sort_by: "popularity.desc", "vote_count.gte": "200", page: 1},
+      {sort_by: "popularity.desc", "vote_count.gte": "200", page: 2},
+      {sort_by: "vote_average.desc", "vote_count.gte": "500", page: 1},
+      {sort_by: "vote_average.desc", "vote_count.gte": "500", page: 2}
+    ];
+    await pool(jobs, 4, async j => {
+      const d = await api("/discover/movie", Object.assign({}, base, j));
+      d.results.forEach(m => take(m, null));
+    });
+
+    // Score provisoire
+    const score = c => {
+      const rec = Math.min(1, c.from.size / Math.min(N, 3));
+      const dot = c.genres.reduce((s, g) => s + (gw[g] || 0), 0);
+      const cos = c.genres.length ? dot / (norm * Math.sqrt(c.genres.length)) : 0;
+      const q = Math.max(0, Math.min(1, (c.va - 5.5) / 3)) * Math.min(1, c.vc / 500);
+      return Math.round(100 * (0.42 * rec + 0.33 * Math.min(1, cos) + 0.25 * q));
+    };
+    cands.forEach(c => c.score = score(c));
+
+    // Vérifier la disponibilité des films recommandés (ceux de la liste A n'ont pas encore leurs plateformes)
+    status.textContent = "Je vérifie où les voir…";
+    const ranked = [...cands.values()].sort((a, b) => b.score - a.score).slice(0, 48);
+    const dets = await pool(ranked, 8, c => details(c.id));
+    const kept = [];
+    ranked.forEach((c, i) => {
+      const d = dets[i];
+      if(!d || !d.flat.length) return;
+      c.d = d; c.overview = d.overview; c.runtime = d.runtime; c.flat = d.flat;
+      if(d.genres.length){ c.genres = d.genres; c.score = score(c); }
+      kept.push(c);
+    });
+    kept.sort((a, b) => b.score - a.score);
+    current = kept.slice(0, 12);
+
+    status.textContent = current.length ? "" : "Aucun film trouvé avec ces plateformes. Essaie d'en ajouter une ou d'aimer d'autres films.";
+    window.__gw = gw;
+    render();
+  }catch(e){
+    status.textContent = errText(e);
+  }finally{
+    updateGo();
+  }
+}
+
+function why(c){
+  if(c.from.size) return `Dans la lignée de ${[...c.from].slice(0, 3).map(esc).join(", ")}`;
+  const gw = window.__gw || {};
+  const shared = c.genres.filter(g => gw[g]).map(g => genreNames[g]).filter(Boolean);
+  return shared.length ? `Genres que tu aimes : ${shared.map(esc).join(", ")}` : "";
+}
+function plats(c){
+  return `<div class="onplat">${c.flat.map(p => `<img src="${poster(p.logo_path, "w92")}" alt="${esc(p.provider_name)}" title="${esc(p.provider_name)}">`).join("")}<span>${esc(c.flat.map(p => p.provider_name).join(", "))}</span></div>`;
+}
+function metaLine(c){
+  const g = c.genres.map(id => genreNames[id]).filter(Boolean).slice(0, 3).join(" · ");
+  return [c.year, fmtRuntime(c.runtime), g].filter(Boolean).map(esc).join(" · ");
+}
+function featured(c){
+  return `<article class="ticket">
+    ${c.poster ? `<img class="poster" src="${poster(c.poster, "w342")}" alt="Affiche de ${esc(c.title)}">` : `<div class="poster" role="img" aria-label="Pas d'affiche"></div>`}
+    <div>
+      <h3>${esc(c.title)}</h3>
+      <p class="meta">${metaLine(c)}</p>
+      <p class="why">${why(c)}</p>
+      ${c.overview ? `<p class="over">${esc(c.overview)}</p>` : ""}
+      ${plats(c)}
+      <div class="actions">
+        <span class="score">Affinité <b>${c.score}</b>/100</span>
+        <button class="btn-s" type="button" data-skip="${c.id}">Écarter</button>
+      </div>
+    </div>
+  </article>`;
+}
+function row(c, rank){
+  return `<li class="row">
+    <span class="rk">${String(rank).padStart(2, "0")}</span>
+    ${thumb(c.poster, c.title)}
+    <div>
+      <h3>${esc(c.title)}</h3>
+      <p class="meta">${metaLine(c)} · ${c.score}/100</p>
+      <p class="why">${why(c)}</p>
+      ${plats(c)}
+    </div>
+    <div class="x-wrap"><button class="btn-s" type="button" data-skip="${c.id}">Écarter</button></div>
+  </li>`;
+}
+function render(){
+  const out = $("#out");
+  if(!current.length){ out.innerHTML = ""; return; }
+  const [top, ...rest] = current;
+  out.innerHTML = `<h2 class="label">Ce soir</h2>${featured(top)}` +
+    (rest.length ? `<h2 class="label" style="margin-top:28px">Ensuite</h2><ol class="rows">${rest.map((c, i) => row(c, i + 2)).join("")}</ol>` : "");
+}
+function updateSeenInfo(){
+  $("#seen-info").textContent = state.seen.length ? `${state.seen.length} film(s) écarté(s) ne seront plus proposés.` : "Aucun film écarté.";
+}
+
+/* ---------- Événements ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if(!t) return;
+  if(t.dataset.act === "retry"){ loadProviders(); return; }
+  if(t.dataset.prov){
+    const id = Number(t.dataset.prov);
+    state.providers = state.providers.includes(id) ? state.providers.filter(x => x !== id) : [...state.providers, id];
+    store.set("providers", state.providers);
+    t.setAttribute("aria-pressed", state.providers.includes(id));
+    updateGo(); return;
+  }
+  if(t.dataset.add){ addLiked(Number(t.dataset.add)); return; }
+  if(t.dataset.del){
+    state.liked = state.liked.filter(m => m.id !== Number(t.dataset.del));
+    store.set("liked", state.liked); renderLiked(); updateGo(); return;
+  }
+  if(t.dataset.skip){
+    const id = Number(t.dataset.skip);
+    state.seen.push(id); store.set("seen", state.seen);
+    current = current.filter(c => c.id !== id);
+    render(); updateSeenInfo(); return;
+  }
+});
+$("#go").addEventListener("click", recommend);
+$("#save-key").addEventListener("click", () => {
+  const v = $("#key").value.trim();
+  if(!v) return;
+  state.key = v; store.set("key", v); boot();
+  $("#seen-info").textContent = "Clé enregistrée.";
+});
+$("#reset-seen").addEventListener("click", () => { state.seen = []; store.set("seen", []); updateSeenInfo(); });
+$("#reset-all").addEventListener("click", () => {
+  state.providers = []; state.liked = []; state.seen = [];
+  ["providers", "liked", "seen"].forEach(k => store.set(k, []));
+  current = []; render(); renderLiked(); renderProviders(); updateGo(); updateSeenInfo();
+});
+
+async function boot(){
+  try{
+    const g = await api("/genre/movie/list");
+    g.genres.forEach(x => genreNames[x.id] = x.name);
+  }catch(e){}
+  await loadProviders();
+}
+(function init(){
+  $("#key").value = state.key;
+  renderLiked(); updateSeenInfo(); updateGo();
+  if(!state.key){
+    $("#providers").innerHTML = '<p class="note">Colle d\'abord ta clé TMDB dans Réglages (tout en bas de la page).</p>';
+    document.querySelector("details").open = true;
+    return;
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
